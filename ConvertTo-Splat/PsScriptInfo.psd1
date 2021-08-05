@@ -1,42 +1,24 @@
 @{
     version = "1.0"
     guid = "23ece0d9-944d-4472-94ac-f0a4f9b34a95"
-    AUTHOR = "Philip 'Withholm' Meholm"
-    COMPANYNAME = ""
-    COPYRIGHT = "Philip Meholm"
     Tags = @("Splat","Cleanup","Convert")
-    LICENSEURI = ""
-    PROJECTURI = ""
 }
+
 <#PSScriptInfo
 
-.VERSION 1.0
-
-.GUID 23ece0d9-944d-4472-94ac-f0a4f9b34a95
-
-.AUTHOR ak
-
+.VERSION 
+.GUID 
+.AUTHOR
 .COMPANYNAME
-
 .COPYRIGHT
-
 .TAGS
-
 .LICENSEURI
-
 .PROJECTURI
-
 .ICONURI
-
 .EXTERNALMODULEDEPENDENCIES 
-
 .REQUIREDSCRIPTS
-
 .EXTERNALSCRIPTDEPENDENCIES
-
 .RELEASENOTES
-
-
 .PRIVATEDATA
 
 #>
