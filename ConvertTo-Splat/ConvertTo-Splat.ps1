@@ -144,8 +144,9 @@ function ConvertTo-Splat
                             $command = $currtok.Content
 
                             #if splatparamname is not defined in arguments, use the command name
-                            if ([string]::IsNullOrEmpty($SplataramName))
+                            if ([string]::IsNullOrEmpty($SplatParamName))
                             {
+                                Write-verbose "`tUsing command name to set param"
                                 $SplatParamName = $command.Replace("-", "").ToLower() + "Param"
                             }
 
@@ -211,7 +212,7 @@ function ConvertTo-Splat
                         {
                             $GroupContents.$($NewIndex) = @{
                                 type = "hashtable"
-                                val  = @()
+                                val  = [System.Collections.Generic.Dictionary[[string],[string[]]]]::new()
                             }
                         }
                         elseif ($currtok.Content -eq '(')
@@ -241,7 +242,7 @@ function ConvertTo-Splat
                     }
                     "GroupEnd"
                     {
-                        #End of a object
+                        #End of a scriptblock
                         if ($currtok.Content -eq '}' -and $Lastgroup.type -eq 'scriptblock')
                         {
                             Write-Verbose "`tEnding scriptblock"
@@ -276,7 +277,7 @@ function ConvertTo-Splat
                             $AddToParameter = $true
                             $GroupContents.Remove($Lastgroup.index)
                         }
-                        #end of scriptblock
+                        #end of object
                         elseif ($currtok.Content -eq "}" -and $Lastgroup.exists -and $Lastgroup.type -ne "scriptblock")
                         {
 
@@ -297,19 +298,28 @@ function ConvertTo-Splat
                             # creates @{key="val";key2="val"} style object
                             if ($CompressObjectValues)
                             {
-                                $ObjectItemsString = $Lastgroup.val -join '; '
+                                $ObjectStrings = $Lastgroup.val.GetEnumerator()|%{$_.key+"="+($_.value -join "")}
+                                $ObjectItemsString = $ObjectStrings -join '; '
                                 $content = $prefix, "@{", $ObjectItemsString, "}" -join ""
                             }
                             #if object only have one property in it, it dont see why everything shouldn't be on the same line
                             elseif ($Lastgroup.val.count -eq 1)
                             {
-                                $ObjectItemsString = $Lastgroup.val -join '; '
+                                $ObjectItemsString = Lastgroup.val.key+" = "+(Lastgroup.val.value -join "")
                                 $content = $prefix, "@{", $ObjectItemsString, "}" -join ""
                             }
                             else
                             {
-                                $tab = " " * $tabSpaceCount
-                                $ObjectItems = $Lastgroup.val | ForEach-Object { "$tab$_" }
+                                #get longest key of all members
+                                $MemberLength = ($Lastgroup.val.keys.length|Sort-Object)[-1] 
+
+                                #$tab{Member}      =$value
+                                #$tab{LongerMember}=$value2 
+                                $ObjectItems = $Lastgroup.val.GetEnumerator()|ForEach-Object{
+                                    $tab + $_.key.padright($MemberLength," ")+ " = " + $($_.value -join "")
+                                }
+
+                                # $ObjectItems =  $Lastgroup.val | ForEach-Object { "$tab$_" }
                                 $content = @(
                                     "$prefix@{"
                                 )
@@ -367,8 +377,18 @@ function ConvertTo-Splat
                     }
                     "Member"
                     {
-                        Write-verbose "`tAdding member $($currtok.Content) to group $($Lastgroup.type) ($($Lastgroup.index))"
-                        $GroupContents[$Lastgroup.index].val += $currtok.Content
+                        
+                        #if last token was '.' it means current token is a property of a earlier variable (ie $var.member)
+                        if($tokens[$i-1].type -eq "operator" -and $tokens[$i-1].content -eq ".")
+                        {
+                            Write-Verbose "`tMember is reference to sub-property"
+                            $AddToParameter=$true
+                        }
+                        else{
+                            Write-verbose "`tAdding member $($currtok.Content) to group $($Lastgroup.type) ($($Lastgroup.index))"
+                            $GroupContents[$Lastgroup.index].val.add($currtok.Content,@())# += @(,$currtok.Content)
+                        }
+                            
                     }
                     Default
                     {
@@ -382,15 +402,24 @@ function ConvertTo-Splat
                     #if a group exists in the groupstack (we are still inside a grouping)
                     if ($Lastgroup.exists)
                     {
-                        Write-verbose "`tAdding data to group $($Lastgroup.type) ($($Lastgroup.index))"
                         if ('commandGroup', "scriptblock" -eq $Lastgroup.type)
                         {
+                            Write-verbose "`tAdding data to group $($Lastgroup.type) ($($Lastgroup.index))"
                             $GroupContents[$Lastgroup.index].val += $Content
                         }
                         else
                         {
-                            #hashtables and objects already have defined a 'member =', so it adds data to this line
-                            $GroupContents[$Lastgroup.index].val[-1] += $Content
+                            $LastKey = $Lastgroup.val.keys|select -last 1
+
+                            if($GroupContents[$Lastgroup.index].val[$LastKey].count -eq 0 -and $content -eq "=")
+                            {
+                                #skip first equals sign.. il add it when i put it together after
+                            }   
+                            else {
+                                Write-verbose "`tAdding data to group $($Lastgroup.type) ($($Lastgroup.index)), member: $LastKey"
+                                #hashtables and objects already have defined a 'member =', so it adds data to this line
+                                $GroupContents[$Lastgroup.index].val[$LastKey] += $Content
+                            }
                         }
                     }
                     #if a command has been defined
@@ -483,3 +512,12 @@ function ConvertTo-Splat
         $outarr -join [System.Environment]::NewLine
     }
 }
+
+# Select-MgProfile beta
+# {
+#     $groupresource = New-MgEntitlementManagementAccessPackageResourceRequest -CatalogId $Catalog.Id -RequestType "AdminAdd" -AccessPackageResource @{
+#         resourceType = "0365 Group"
+#         originId     = $Group.Id
+#         originSystem = "AadGroup"
+#     } -ExecuteImmediately
+# }|ConvertTo-Splat -Verbose -SplatParamName "test"
