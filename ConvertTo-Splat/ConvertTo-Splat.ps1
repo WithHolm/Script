@@ -194,7 +194,7 @@ function ConvertTo-Splat
                             Write-Verbose "Its a casted hashtable. handling it like groupStart"
                             $GroupContents.$($GroupContents.Count) = @{
                                 type = $currtok.Content
-                                val  = @()
+                                val  = [System.Collections.Generic.Dictionary[[string],[string[]]]]::new()
                             }
                             $i++
                         }
@@ -409,7 +409,7 @@ function ConvertTo-Splat
                         }
                         else
                         {
-                            $LastKey = $Lastgroup.val.keys|select -last 1
+                            $LastKey = $Lastgroup.val.keys|Select-Object -last 1
 
                             if($GroupContents[$Lastgroup.index].val[$LastKey].count -eq 0 -and $content -eq "=")
                             {
@@ -502,7 +502,7 @@ function ConvertTo-Splat
                 ("`$$($SplatParamName) = @{")
                 (($ParamArr | ForEach-Object { "$tab$_" }) -join [System.Environment]::NewLine)
                 '}'.trim()
-                "$($BeforeCommand -join '')$command @$($SplatParamName)".Trim()
+                "$($BeforeCommand -join '') $command @$($SplatParamName)".Trim()
             )
         }
         else
@@ -515,7 +515,7 @@ function ConvertTo-Splat
 
 # Select-MgProfile beta
 # {
-#     $groupresource = New-MgEntitlementManagementAccessPackageResourceRequest -CatalogId $Catalog.Id -RequestType "AdminAdd" -AccessPackageResource @{
+#     $groupresource = New-MgEntitlementManagementAccessPackageResourceRequest -CatalogId $Catalog.Id -RequestType "AdminAdd" -AccessPackageResource [pscustomobject]@{
 #         resourceType = "0365 Group"
 #         originId     = $Group.Id
 #         originSystem = "AadGroup"

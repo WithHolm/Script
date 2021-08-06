@@ -118,8 +118,8 @@ Describe "ConvertTo-ParamHash" -Tag "ConvertTo-ParamHash" {
         a    = @(
           '$getcontentParam = @{'
           '    ReadCount = @{'
-          '        test="testing"'
-          '        test2="testing"'
+          '        test  = "testing"'
+          '        test2 = "testing"'
           '    }'
           '}'
           'Get-content @getcontentParam')
@@ -130,8 +130,8 @@ Describe "ConvertTo-ParamHash" -Tag "ConvertTo-ParamHash" {
         a    = @(
           '$getcontentParam = @{'
           '    ReadCount = @{'
-          '        test="testing"'
-          '        other="testing"'
+          '        test  = "testing"'
+          '        other = "testing"'
           '    }'
           '}'
           'Get-content @getcontentParam')
@@ -180,8 +180,8 @@ Describe "ConvertTo-ParamHash" -Tag "ConvertTo-ParamHash" {
       $Answer = @(
         '$getcontentParam = @{'
         '    ReadCount = ([ordered]@{'
-        '        test="testing"'
-        '        other="test"'
+        '        test  = "testing"'
+        '        other = "test"'
         '    })'
         '}'
         'Get-content @getcontentParam'
